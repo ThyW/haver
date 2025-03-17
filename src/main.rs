@@ -1,13 +1,13 @@
 mod bloom_filter;
 
 use bloom_filter::BloomFilter;
+use clap::Parser as _;
 use std::{
     collections::HashSet,
-    env::args,
     fs::File,
     hash::{BuildHasher, Hasher},
     io::{self, stdout, BufRead, BufReader, Write},
-    process::exit,
+    path::PathBuf,
 };
 
 #[derive(Default, PartialEq, Eq)]
@@ -33,22 +33,24 @@ impl BuildHasher for NoHasher {
     }
 }
 
+#[derive(clap::Parser)]
+#[command(version, about)]
+struct Args {
+    file: PathBuf,
+    #[arg(short = 'e', default_value_t = 0.001)]
+    err_prob: f64,
+    #[arg(short = 'i', default_value_t = 10000000)]
+    insertions: usize,
+    #[arg(short = 'q')]
+    quiet: bool,
+}
+
 fn main() -> io::Result<()> {
-    let mut args = args();
-    if args.len() != 4 {
-        eprintln!("usage: haver <bloom-filter-file> <err-prob> <insertions>");
-        exit(1);
-    }
-    let (f1, err, toks): (String, f64, usize) = (
-        args.nth(1).unwrap(),
-        args.next().unwrap().parse().unwrap(),
-        args.next().unwrap().parse().unwrap(),
-    );
-
+    let args = Args::parse();
     let mut map: HashSet<u64, NoHasher> = HashSet::with_hasher(NoHasher::default());
-    let mut bloom_filter = BloomFilter::new(err, toks);
+    let mut bloom_filter = BloomFilter::new(args.err_prob, args.insertions);
 
-    let file = File::open(f1)?;
+    let file = File::open(args.file)?;
     let mut writer = stdout().lock();
 
     let breader = BufReader::new(file);
@@ -63,14 +65,20 @@ fn main() -> io::Result<()> {
         let c1 = map.insert(hash);
         let c2 = bloom_filter.insert_raw((hash, (hash ^ 12658332951230890439u64).rotate_left(1)));
         if c1 && !c2 {
-            writeln!(writer, "error hash: {hash:016x}")?;
+            if !args.quiet {
+                writeln!(writer, "error hash: {hash:016x}")?;
+            }
             err_count += 1;
         }
     }
 
     writeln!(writer, "Processed hashes: {total_count}")?;
     writeln!(writer, "False positives: {err_count}")?;
-    writeln!(writer, "Expected error probabilty: {:.5}%", err * 100.,)?;
+    writeln!(
+        writer,
+        "Expected error probabilty: {:.5}%",
+        args.err_prob * 100.,
+    )?;
     writeln!(
         writer,
         "Real error rate: {:.5}%",
