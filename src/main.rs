@@ -43,6 +43,8 @@ struct Args {
     insertions: usize,
     #[arg(short = 'q')]
     quiet: bool,
+    #[arg(short = 's')]
+    short: bool,
 }
 
 fn main() -> io::Result<()> {
@@ -65,13 +67,17 @@ fn main() -> io::Result<()> {
         let c1 = map.insert(hash);
         let c2 = bloom_filter.insert_raw((hash, (hash ^ 12658332951230890439u64).rotate_left(1)));
         if c1 && !c2 {
-            if !args.quiet {
+            if !args.quiet && !args.short {
                 writeln!(writer, "error hash: {hash:016x}")?;
             }
             err_count += 1;
         }
     }
 
+    if args.short {
+        writeln!(writer, "{total_count} {err_count}")?;
+        return Ok(());
+    }
     writeln!(writer, "Processed hashes: {total_count}")?;
     writeln!(writer, "False positives: {err_count}")?;
     writeln!(
