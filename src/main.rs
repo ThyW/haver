@@ -56,8 +56,8 @@ fn main() -> io::Result<()> {
     let mut writer = stdout().lock();
 
     let breader = BufReader::new(file);
-    let mut err_count = 0;
-    let mut total_count = 0;
+    let mut err_count = 0u64;
+    let mut total_count = 0u64;
 
     for line in breader.lines().map_while(|x| x.ok()) {
         total_count += 1;
