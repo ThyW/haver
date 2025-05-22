@@ -5,8 +5,16 @@ This is a small and simple tool used to check which hashes in the inserted into 
 ## Usage
 
 ```
-$ haver <onion-output-file> <error-probability> <insertions>
-```
+Usage: haver [OPTIONS] <FILE>
 
-- `<onion-output-file>` is a file created by `onion-rs` when run with `--show-hashes`.
-- `<error-probability>, <insertions>` a float and an integer, should match the values used by `onion-rs` when creating the file from the previous argument.
+Arguments:
+  <FILE>
+
+Options:
+  -e <ERR_PROB>        [default: 0.001]
+  -i <INSERTIONS>      [default: 10000000]
+  -q
+  -s
+  -h, --help           Print help
+  -V, --version        Print version
+```
